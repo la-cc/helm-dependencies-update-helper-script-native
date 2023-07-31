@@ -4,7 +4,7 @@ This is a script to help you to update your helm dependencies in your helm chart
 
 Why I build this tool? We have a lot of helm charts and we want to update the dependencies in all of them.
 The resources from helm-charts will be deployed over argocd, so the helm chart will no be installed on the cluster itself.
-Because of that you cant use tools like [renovate](https://github.com/renovatebot/helm-charts) or [dependabot](https://github.com/dependabot).
+Because of that you cant use tools like [renovate](https://github.com/renovatebot/helm-charts) or [dependabot](https://github.com/dependabot) running in the cluster. Since recently you can use renovate to update helm-values and maybe you like to use this tool instead of this script.
 
 You can use this tool in your CI/CD pipeline or locally. The whole description about the script can be found on TBD.
 
@@ -17,6 +17,7 @@ You will need the following tools installed on your machine (depends on your tar
 - [az cli](https://learn.microsoft.com/en-us/cli/azure/install-azure-cli)
 - [azure-devops cli](https://learn.microsoft.com/en-us/azure/devops/cli/?view=azure-devops)
 - [gh cli](https://cli.github.com/manual/installation)
+- [helmv3](https://helm.sh/docs/intro/install/)
 
 Please feel to fork this repository. This allows you to customize the script for your needs. Moreover you test the script directly in your environment.
 
