@@ -25,12 +25,11 @@ function checkHelmDependenciesAndUpdateWithOutPR() {
         # Repository name for the Artifact API
         repo_name=$(yq e ".dependencies[$i].repository.name" $file)
         # Repository url for the Artifact API
-        repo_url=$(yq e ".dependencies[$i].repository.url" $file)
+        repo_url_path=$(yq e ".dependencies[$i].repository.path" $file)
 
         # Sanitize the repo name
         sanitized_name=$(echo $repo_name | tr -d ' ' | tr '/' '-')
 
-        helm repo add $sanitized_name $repo_url || true
         #Get the current version with the Artifact API
         current_version=$(helm search repo $repo_name --output yaml | yq eval '.[0].version')
 
@@ -39,6 +38,11 @@ function checkHelmDependenciesAndUpdateWithOutPR() {
 
         # Read the version from the Chart.yaml file
         version=$(yq e "$version_path" "$(basename $chart_file)")
+        repo_url=$(yq e "$repo_url_path" "$(basename $chart_file)")
+
+        # Add the repo to helm
+        helm repo add $sanitized_name $repo_url || true
+        helm repo update 1 &>/dev/null || true
 
         # Output
         echo "Name: $name"
@@ -110,12 +114,11 @@ function checkHelmDependenciesAndUpdateGitHub() {
         # Repository name for the Artifact API
         repo_name=$(yq e ".dependencies[$i].repository.name" $file)
         # Repository url for the Artifact API
-        repo_url=$(yq e ".dependencies[$i].repository.url" $file)
+        repo_url_path=$(yq e ".dependencies[$i].repository.path" $file)
 
         # Sanitize the repo name
         sanitized_name=$(echo $repo_name | tr -d ' ' | tr '/' '-')
 
-        helm repo add $sanitized_name $repo_url || true
         #Get the current version with the Artifact API
         current_version=$(helm search repo $repo_name --output yaml | yq eval '.[0].version')
 
@@ -124,6 +127,11 @@ function checkHelmDependenciesAndUpdateGitHub() {
 
         # Read the version from the Chart.yaml file
         version=$(yq e "$version_path" "$(basename $chart_file)")
+        repo_url=$(yq e "$repo_url_path" "$(basename $chart_file)")
+
+        # Add the repo to helm
+        helm repo add $sanitized_name $repo_url || true
+        helm repo update 1 &>/dev/null || true
 
         # Output
         echo "Name: $name"
@@ -198,12 +206,11 @@ function checkHelmDependenciesAndUpdateAzureDevOps() {
         # Repository name for the Artifact API
         repo_name=$(yq e ".dependencies[$i].repository.name" $file)
         # Repository url for the Artifact API
-        repo_url=$(yq e ".dependencies[$i].repository.url" $file)
+        repo_url_path=$(yq e ".dependencies[$i].repository.path" $file)
 
         # Sanitize the repo name
         sanitized_name=$(echo $repo_name | tr -d ' ' | tr '/' '-')
 
-        helm repo add $sanitized_name $repo_url || true
         #Get the current version with the Artifact API
         current_version=$(helm search repo $repo_name --output yaml | yq eval '.[0].version')
 
@@ -212,6 +219,11 @@ function checkHelmDependenciesAndUpdateAzureDevOps() {
 
         # Read the version from the Chart.yaml file
         version=$(yq e "$version_path" "$(basename $chart_file)")
+        repo_url=$(yq e "$repo_url_path" "$(basename $chart_file)")
+
+        # Add the repo to helm
+        helm repo add $sanitized_name $repo_url || true
+        helm repo update 1 &>/dev/null || true
 
         # Output
         echo "Name: $name"
@@ -293,12 +305,11 @@ function checkHelmDependenciesAndUpdateDryRun() {
         # Repository name for the Artifact API
         repo_name=$(yq e ".dependencies[$i].repository.name" $file)
         # Repository url for the Artifact API
-        repo_url=$(yq e ".dependencies[$i].repository.url" $file)
+        repo_url_path=$(yq e ".dependencies[$i].repository.path" $file)
 
         # Sanitize the repo name
         sanitized_name=$(echo $repo_name | tr -d ' ' | tr '/' '-')
 
-        helm repo add $sanitized_name $repo_url || true
         #Get the current version with the Artifact API
         current_version=$(helm search repo $repo_name --output yaml | yq eval '.[0].version')
 
@@ -307,6 +318,11 @@ function checkHelmDependenciesAndUpdateDryRun() {
 
         # Read the version from the Chart.yaml file
         version=$(yq e "$version_path" "$(basename $chart_file)")
+        repo_url=$(yq e "$repo_url_path" "$(basename $chart_file)")
+
+        # Add the repo to helm
+        helm repo add $sanitized_name $repo_url || true
+        helm repo update 1 &>/dev/null || true
 
         # Output
         echo "####################### Begin #######################"
@@ -396,7 +412,7 @@ function start() {
 
 # -------- Check Prerequisites ------------ #
 
-for cmd in gh yq dyff; do
+for cmd in gh yq dyff az helm git; do
     command -v ${cmd} >/dev/null || {
         echo >&2 "${cmd} must be installed - exiting..."
         exit 1
