@@ -16,29 +16,29 @@ function checkHelmDependenciesAndUpdateWithOutPR() {
 
     # Iterate over the list
     for ((i = 0; i < $count; i++)); do
-        # Name of the dependency
+        # Name of the dependency like External DNS
         name=$(yq e ".dependencies[$i].name" $file)
-
         # Path to the Chart.yaml file
         chart_file=$(yq e ".dependencies[$i].source.file" $file)
-
-        # Path to the version number in the Chart.yaml file
+        # Path to the version number in the Chart.yaml file like 6.20.0
         version_path=$(yq e ".dependencies[$i].source.path" $file)
+        # Repository name for the Artifact API
+        repo_name=$(yq e ".dependencies[$i].repository.name" $file)
+        # Repository url for the Artifact API
+        repo_url=$(yq e ".dependencies[$i].repository.url" $file)
 
-        # Change directory to the chart file directory
+        # Sanitize the repo name
+        sanitized_name=$(echo $repo_name | tr -d ' ' | tr '/' '-')
+
+        helm repo add $sanitized_name $repo_url || true
+        #Get the current version with the Artifact API
+        current_version=$(helm search repo $repo_name --output yaml | yq eval '.[0].version')
+
+        #Change directory to the chart file directory
         cd $(dirname $chart_file) || exit
 
         # Read the version from the Chart.yaml file
         version=$(yq e "$version_path" "$(basename $chart_file)")
-
-        # Repository name for the Artifact API
-        repo_name=$(yq e ".dependencies[$i].repository.name" $file)
-
-        # Get the current version with the Artifact API
-        current_version=$(curl -sSL "https://artifacthub.io/api/v1/packages/helm/$repo_name/feed/rss" | yq -p=xml '.rss.channel.item[0].title' | cut -d' ' -f2)
-
-        # Sanitize the repo name
-        sanitized_name=$(echo $repo_name | tr -d ' ' | tr '/' '-')
 
         # Output
         echo "Name: $name"
@@ -49,25 +49,21 @@ function checkHelmDependenciesAndUpdateWithOutPR() {
         if [ "$version" != "$current_version" ]; then
             if [ ! $(git branch --list update-helm-$sanitized_name-$current_version) ]; then
                 echo "There's a difference between the versions."
-                # Get the package_id
-                package_id=$(curl -sSL "https://artifacthub.io/api/v1/packages/helm/$repo_name/$current_version" | yq -r .package_id)
 
-                # Insert the package_id + version into the command
-                new_values=$(curl -sSL "https://artifacthub.io/api/v1/packages/$package_id/$current_version/values")
+                # Get values from the repo
+                values=$(helm show values $repo_name --version $version)
+                echo "$values" >values.yaml
+                current_values=$(helm show values $repo_name --version $current_version)
+                echo "$current_values" >current_values.yaml
 
-                # Save the new values to a temporary file
-                echo "$new_values" >new_values.yaml
+                diff_result=$(dyff between values.yaml current_values.yaml) || true
+                # Output differences
+                echo "$diff_result" >diff_result.txt
+                awk '{ printf "\t%s\n", $0 }' diff_result.txt >shift_diff_result.txt
+                shift_diff_result=$(cat shift_diff_result.txt)
 
-                # Insert the package_id + current version into the command
-                old_values=$(curl -sSL "https://artifacthub.io/api/v1/packages/$package_id/$version/values")
-
-                # Save the old values to a temporary file
-                echo "$old_values" >old_values.yaml
-
-                # Perform a diff on the two files
-                diff_result=$(dyff between old_values.yaml new_values.yaml) || true
                 # Delete the temporary files
-                rm old_values.yaml new_values.yaml
+                rm values.yaml current_values.yaml diff_result.txt shift_diff_result.txt
 
                 # Replace the old version with the new version in the Chart.yaml file using sed
                 sed -i.bak "s/version: $version/version: $current_version/g" "$(basename $chart_file)" && rm "$(basename $chart_file).bak"
@@ -105,29 +101,29 @@ function checkHelmDependenciesAndUpdateGitHub() {
 
     # Iterate over the list
     for ((i = 0; i < $count; i++)); do
-        # Name of the dependency
+        # Name of the dependency like External DNS
         name=$(yq e ".dependencies[$i].name" $file)
-
         # Path to the Chart.yaml file
         chart_file=$(yq e ".dependencies[$i].source.file" $file)
-
-        # Path to the version number in the Chart.yaml file
+        # Path to the version number in the Chart.yaml file like 6.20.0
         version_path=$(yq e ".dependencies[$i].source.path" $file)
+        # Repository name for the Artifact API
+        repo_name=$(yq e ".dependencies[$i].repository.name" $file)
+        # Repository url for the Artifact API
+        repo_url=$(yq e ".dependencies[$i].repository.url" $file)
 
-        # Change directory to the chart file directory
+        # Sanitize the repo name
+        sanitized_name=$(echo $repo_name | tr -d ' ' | tr '/' '-')
+
+        helm repo add $sanitized_name $repo_url || true
+        #Get the current version with the Artifact API
+        current_version=$(helm search repo $repo_name --output yaml | yq eval '.[0].version')
+
+        #Change directory to the chart file directory
         cd $(dirname $chart_file) || exit
 
         # Read the version from the Chart.yaml file
         version=$(yq e "$version_path" "$(basename $chart_file)")
-
-        # Repository name for the Artifact API
-        repo_name=$(yq e ".dependencies[$i].repository.name" $file)
-
-        # Get the current version with the Artifact API
-        current_version=$(curl -sSL "https://artifacthub.io/api/v1/packages/helm/$repo_name/feed/rss" | yq -p=xml '.rss.channel.item[0].title' | cut -d' ' -f2)
-
-        # Sanitize the repo name
-        sanitized_name=$(echo $repo_name | tr -d ' ' | tr '/' '-')
 
         # Output
         echo "Name: $name"
@@ -138,31 +134,21 @@ function checkHelmDependenciesAndUpdateGitHub() {
         if [ "$version" != "$current_version" ]; then
             if [ ! $(git branch --list update-helm-$sanitized_name-$current_version) ]; then
                 echo "There's a difference between the versions."
-                # Get the package_id
-                package_id=$(curl -sSL "https://artifacthub.io/api/v1/packages/helm/$repo_name/$current_version" | yq -r .package_id)
 
-                # Insert the package_id + version into the command
-                new_values=$(curl -sSL "https://artifacthub.io/api/v1/packages/$package_id/$current_version/values")
+                # Get values from the repo
+                values=$(helm show values $repo_name --version $version)
+                echo "$values" >values.yaml
+                current_values=$(helm show values $repo_name --version $current_version)
+                echo "$current_values" >current_values.yaml
 
-                # Save the new values to a temporary file
-                echo "$new_values" >new_values.yaml
-
-                # Insert the package_id + current version into the command
-                old_values=$(curl -sSL "https://artifacthub.io/api/v1/packages/$package_id/$version/values")
-
-                # Save the old values to a temporary file
-                echo "$old_values" >old_values.yaml
-
-                # Perform a diff on the two files
-                diff_result=$(dyff between old_values.yaml new_values.yaml) || true
-
+                diff_result=$(dyff between values.yaml current_values.yaml) || true
                 # Output differences
                 echo "$diff_result" >diff_result.txt
                 awk '{ printf "\t%s\n", $0 }' diff_result.txt >shift_diff_result.txt
                 shift_diff_result=$(cat shift_diff_result.txt)
 
                 # Delete the temporary files
-                rm old_values.yaml new_values.yaml diff_result.txt shift_diff_result.txt
+                rm values.yaml current_values.yaml diff_result.txt shift_diff_result.txt
 
                 # Replace the old version with the new version in the Chart.yaml file using sed
                 sed -i.bak "s/version: $version/version: $current_version/g" "$(basename $chart_file)" && rm "$(basename $chart_file).bak"
@@ -203,29 +189,29 @@ function checkHelmDependenciesAndUpdateAzureDevOps() {
 
     # Iterate over the list
     for ((i = 0; i < $count; i++)); do
-        # Name of the dependency
+        # Name of the dependency like External DNS
         name=$(yq e ".dependencies[$i].name" $file)
-
         # Path to the Chart.yaml file
         chart_file=$(yq e ".dependencies[$i].source.file" $file)
-
-        # Path to the version number in the Chart.yaml file
+        # Path to the version number in the Chart.yaml file like 6.20.0
         version_path=$(yq e ".dependencies[$i].source.path" $file)
+        # Repository name for the Artifact API
+        repo_name=$(yq e ".dependencies[$i].repository.name" $file)
+        # Repository url for the Artifact API
+        repo_url=$(yq e ".dependencies[$i].repository.url" $file)
 
-        # Change directory to the chart file directory
+        # Sanitize the repo name
+        sanitized_name=$(echo $repo_name | tr -d ' ' | tr '/' '-')
+
+        helm repo add $sanitized_name $repo_url || true
+        #Get the current version with the Artifact API
+        current_version=$(helm search repo $repo_name --output yaml | yq eval '.[0].version')
+
+        #Change directory to the chart file directory
         cd $(dirname $chart_file) || exit
 
         # Read the version from the Chart.yaml file
         version=$(yq e "$version_path" "$(basename $chart_file)")
-
-        # Repository name for the Artifact API
-        repo_name=$(yq e ".dependencies[$i].repository.name" $file)
-
-        # Get the current version with the Artifact API
-        current_version=$(curl -sSL "https://artifacthub.io/api/v1/packages/helm/$repo_name/feed/rss" | yq -p=xml '.rss.channel.item[0].title' | cut -d' ' -f2)
-
-        # Sanitize the repo name
-        sanitized_name=$(echo $repo_name | tr -d ' ' | tr '/' '-')
 
         # Output
         echo "Name: $name"
@@ -236,24 +222,14 @@ function checkHelmDependenciesAndUpdateAzureDevOps() {
         if [ "$version" != "$current_version" ]; then
             if [ ! $(git branch --list update-helm-$sanitized_name-$current_version) ]; then
                 echo "There's a difference between the versions."
-                # Get the package_id
-                package_id=$(curl -sSL "https://artifacthub.io/api/v1/packages/helm/$repo_name/$current_version" | yq -r .package_id)
 
-                # Insert the package_id + version into the command
-                new_values=$(curl -sSL "https://artifacthub.io/api/v1/packages/$package_id/$current_version/values")
+                # Get values from the repo
+                values=$(helm show values $repo_name --version $version)
+                echo "$values" >values.yaml
+                current_values=$(helm show values $repo_name --version $current_version)
+                echo "$current_values" >current_values.yaml
 
-                # Save the new values to a temporary file
-                echo "$new_values" >new_values.yaml
-
-                # Insert the package_id + current version into the command
-                old_values=$(curl -sSL "https://artifacthub.io/api/v1/packages/$package_id/$version/values")
-
-                # Save the old values to a temporary file
-                echo "$old_values" >old_values.yaml
-
-                # Perform a diff on the two files
-                diff_result=$(dyff between old_values.yaml new_values.yaml) || true
-
+                diff_result=$(dyff between values.yaml current_values.yaml) || true
                 # Output differences
                 echo "$diff_result" >diff_result.txt
                 awk '{ printf "\t%s\n", $0 }' diff_result.txt >shift_diff_result.txt
@@ -265,20 +241,20 @@ function checkHelmDependenciesAndUpdateAzureDevOps() {
                 fi
 
                 # Delete the temporary files
-                rm old_values.yaml new_values.yaml diff_result.txt shift_diff_result.txt
+                rm values.yaml current_values.yaml diff_result.txt shift_diff_result.txt
 
                 # Replace the old version with the new version in the Chart.yaml file using sed
                 sed -i.bak "s/version: $version/version: $current_version/g" "$(basename $chart_file)" && rm "$(basename $chart_file).bak"
 
                 # Create a new branch for this change
-                git checkout -b update-helm-$sanitized_name-$current_version || true
+                git checkout -b update-helm-$sanitized_name-$current_version
                 # Add the changes to the staging area
                 git add "$(basename $chart_file)"
 
                 # Create a commit with a message indicating the changes
                 git commit -m "Update $name version from $version to $current_version"
 
-                # Push the new branch to Azuq DevOps
+                # Push the new branch to GitHub
                 git push origin update-helm-$sanitized_name-$current_version
 
                 # Create a Azure DevOps Pull Request
@@ -319,9 +295,10 @@ function checkHelmDependenciesAndUpdateDryRun() {
         # Repository url for the Artifact API
         repo_url=$(yq e ".dependencies[$i].repository.url" $file)
 
-        IFS='/' read -ra CLEAN_REPO_NAME <<<"$repo_name"
+        # Sanitize the repo name
+        sanitized_name=$(echo $repo_name | tr -d ' ' | tr '/' '-')
 
-        helm repo add $CLEAN_REPO_NAME $repo_url || true
+        helm repo add $sanitized_name $repo_url || true
         #Get the current version with the Artifact API
         current_version=$(helm search repo $repo_name --output yaml | yq eval '.[0].version')
 
