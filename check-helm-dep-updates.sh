@@ -323,7 +323,7 @@ function checkHelmDependenciesAndUpdateDryRun() {
 
         helm repo add $CLEAN_REPO_NAME $repo_url || true
         #Get the current version with the Artifact API
-        current_version=$(helm search repo bitnami/external-dns --output yaml | yq eval '.[0].version')
+        current_version=$(helm search repo $repo_name --output yaml | yq eval '.[0].version')
 
         #Change directory to the chart file directory
         cd $(dirname $chart_file) || exit

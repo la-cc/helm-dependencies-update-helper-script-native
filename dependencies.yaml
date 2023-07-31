@@ -6,12 +6,10 @@ dependencies:
     repository:
       name: bitnami/external-dns
       url: https://kyverno.github.io/kyverno/
-  # - name: "Kyverno"
-  #   source:
-  #     file: security/kyverno/Chart.yaml
-  #     path: .dependencies[0].version
-  #   repository:
-  #     url: https://github.com/kyverno/kyverno/tree/main/charts/kyverno
-  #     file: https://raw.githubusercontent.com/kyverno/kyverno/main/charts/kyverno/Chart.yaml
-  #     values: https://raw.githubusercontent.com/kyverno/kyverno/main/charts/kyverno/values.yaml
-  #     path: .version
+  - name: "Kyverno"
+    source:
+      file: security/kyverno/Chart.yaml
+      path: .dependencies[0].version
+    repository:
+      name: kyverno/kyverno
+      url: https://kyverno.github.io/kyverno/
