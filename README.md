@@ -1,13 +1,13 @@
-# Helm Dependencies Update Helper (Script) - WIP!!!
+# Helm Dependencies Update Helper (Script)
 
 This is a script to help you to update your helm dependencies in your helm charts. It will create a PR with the changes if you want to. But
 
 Why I build this tool? We have a lot of helm charts and we want to update the dependencies in all of them.
 The resources from helm-charts will be deployed over argocd, so the helm chart will no be installed on the cluster itself.
-Because of that you cant use tools like [renovate](https://github.com/renovatebot/helm-charts) or [dependabot](https://github.com/dependabot) running in the cluster. 
+Because of that you cant use tools like [renovate](https://github.com/renovatebot/helm-charts) or [dependabot](https://github.com/dependabot) running in the cluster.
 Since recently you can use renovate to update helm-values and maybe you like to use this tool instead of this script.
 
-You can use this tool in your CI/CD pipeline or locally. The whole description about the script can be found on TBD.
+You can use this tool in your CI/CD pipeline or locally.
 
 ## Requirements
 
@@ -26,7 +26,7 @@ Please feel to fork this repository. This allows you to customize the script for
 
 The default for the key `config` in the `dependencies.yaml` files looks like:
 
-```yaml 
+```yaml
 config:
   BRANCH: main
   DRY_RUN: true
@@ -42,6 +42,7 @@ This will only print the changes to the console. You can run the script with:
 ```
 
 You will get an output like:
+
 ```
  ####################### Begin #######################
  Name: External DNS
@@ -76,7 +77,7 @@ First you have to login against GitHub. You can do this with `gh auth login` or 
 
 Now edit the key `config` in `dependencies.yaml` file like:
 
-```yaml 
+```yaml
 config:
   BRANCH: main
   DRY_RUN: false
@@ -87,9 +88,9 @@ config:
 
 Commit and push the changes to your repository. After that you can run the script with:
 
->**Warning**
+> **Warning**
 >
->After you set `GITHUB` to `true`, the script will create a new branch and a PR with the changes. If you want to test it first, set `DRY_RUN` to `true`.
+> After you set `GITHUB` to `true`, the script will create a new branch and a PR with the changes. If you want to test it first, set `DRY_RUN` to `true`.
 
 Execute the script with:
 
@@ -109,7 +110,7 @@ AZURE_DEVOPS_EXT_PAT=<your-pat-token>
 
 Now edit the key `config` in `dependencies.yaml` file like:
 
-```yaml 
+```yaml
 config:
   BRANCH: main
   DRY_RUN: true
@@ -118,9 +119,9 @@ config:
   WITHOUT_PR: false
 ```
 
->**Warning**
+> **Warning**
 >
->After you set `AZURE_DEVOPS` to `true`, the script will create a new branch and a PR with the changes. If you want to test it first, set `DRY_RUN` to `true`.
+> After you set `AZURE_DEVOPS` to `true`, the script will create a new branch and a PR with the changes. If you want to test it first, set `DRY_RUN` to `true`.
 
 Execute the script with:
 
@@ -137,7 +138,7 @@ It can be useful if you want to update the helm dependencies in your main branch
 
 Now edit the key `config` in `dependencies.yaml` file like:
 
-```yaml 
+```yaml
 config:
   BRANCH: main
   DRY_RUN: true
@@ -146,9 +147,9 @@ config:
   WITHOUT_PR: true
 ```
 
->**Warning**
+> **Warning**
 >
->After you set `WITHOUT_PR` to `true`, the script will create a new branch and push this branch. If you want to test it first, set `DRY_RUN` to `true`.
+> After you set `WITHOUT_PR` to `true`, the script will create a new branch and push this branch. If you want to test it first, set `DRY_RUN` to `true`.
 
 Execute the script with:
 
@@ -160,12 +161,60 @@ Check the changes on your Git Provider and if you are happy with them, you can m
 
 ## The CI/CD Way
 
+Naturally, you’d want everything to be automated, and the only task on your plate would be to review the pull request. Here’s where CI/CD (Continuous Integration/Continuous Deployment) fits in like a glove.
+
 ### Azure DevOps Pipelines
 
-This part is still WIP. I will update this part as soon as possible. You can already use the script in your CI/CD pipeline.
-I want to create a GitHub Action for this script.
+Under the folder azure-devops you will find a pipeline file. You can use this folder structure in your Azure DevOps project.
+You should replace the `orga` parameter with your organization and like `https://dev.azure.com/<YOUR_ORGA_NAME>/<YOUR_PPROJECT_NAME>/_git/<YOUR_REPO_NAME>`.
 
 ### GitHub Actions - TBD
 
-This part is still WIP. I will update this part as soon as possible. You can already use the script in your CI/CD pipeline.
-I want to create a GitHub Action for this script.
+You can use this script as a GitHub action in your repository.
+To do this, you need only to create a new workflow file in your repository under `.github/workflows/` and add the following content:
+
+```yaml
+name: helm-dependencies
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 0 * * *"
+  push:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/helm-dependencies.yml"
+      - "dependencies.yaml"
+
+jobs:
+  helm-dependencies:
+    name: Helm Dependencies
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Helm Dependencies
+        uses: la-cc/gh-actions/helm-dependencies@v0.0.3-1
+        with:
+          config-path: dependencies.yaml
+          user-email: "meep-the-helm-bot@users.noreply.github.com"
+          user-name: "Meep"
+          default-branch: "main"
+          dry-run: false
+          github-run: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+```
+
+Of course you will be need a `dependencies.yaml` file in your repository. You can use the example file from this [repository](https://github.com/la-cc/kubernetes-service-catalog-dep-test).
+
+## Contributing
+
+If you're eager to contribute to this script, feel free to fork the repository and submit a pull request. Your input is valued and always welcome!
+
+**Current Contributors:**
+
+@jullianow
+@la-cc

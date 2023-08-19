@@ -9,16 +9,16 @@ dependencies:
   - name: "External DNS"
     arrayPosition: 0
     repositoryName: bitnami/external-dns
-    sourcePath: dns/external-dns
+    sourcePath: examples/dns/external-dns
   - name: "Kyverno"
     arrayPosition: 0
     repositoryName: kyverno/kyverno
-    sourcePath: security/kyverno
+    sourcePath: examples/security/kyverno
   - name: "minIO Operator"
     arrayPosition: 0
     repositoryName: minio-operator/operator
-    sourcePath: storage/minio-operator
+    sourcePath: examples/storage/minio-operator
   - name: "minIO Tenant"
     arrayPosition: 0
-    repositoryName: minio-operator/tenant
-    sourcePath: storage/minio-tenant
+    repositoryName: minio-tenant/tenant
+    sourcePath: examples/storage/minio-tenant

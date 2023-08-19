@@ -1,0 +1,5 @@
+dependencies:
+  - name: "RabbitMQ"
+    arrayPosition: 0
+    sourcePath: helm/message-broker/rabbitmq
+    repositoryName: bitnami/rabbitmq

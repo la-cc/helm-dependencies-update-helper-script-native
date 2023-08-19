@@ -1,0 +1,146 @@
+steps:
+  - task: Bash@3
+    displayName: Install yq
+    inputs:
+      script: |
+        curl -L https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 -o /usr/local/bin/yq &&\
+        chmod +x /usr/local/bin/yq
+      displayName: Install yq
+      targetType: inline
+  - task: Bash@3
+    displayName: Install GitHub CLI (gh)
+    inputs:
+      script: |
+        curl -L https://github.com/cli/cli/releases/download/v2.32.1/gh_2.32.1_linux_amd64.tar.gz -o gh_2.32.1_linux_amd64.tar.gz && \
+        tar xfv gh_2.32.1_linux_amd64.tar.gz -C /usr/local/bin && \
+        rm gh_2.32.1_linux_amd64.tar.gz
+      displayName: Install GitHub CLI (gh)
+      targetType: inline
+  - task: Bash@3
+    displayName: Install dyff
+    inputs:
+      script: |
+        curl -L https://github.com/homeport/dyff/releases/download/v1.5.8/dyff_1.5.8_linux_amd64.tar.gz -o dyff_v1.5.8_linux_amd64.tar.gz && \
+        tar xfv dyff_v1.5.8_linux_amd64.tar.gz -C /usr/local/bin && \
+        rm dyff_v1.5.8_linux_amd64.tar.gz
+      displayName: Install dyff
+      targetType: inline
+  - task: Bash@3
+    displayName: Check Helm Dependencies Updates
+    env:
+      AZURE_DEVOPS_EXT_PAT: $(System.AccessToken)
+    inputs:
+      script: |
+        # Read the file
+        file="$(pwd)/dependencies.yaml" # use absolute path
+
+        # Load dependencies in memory
+        dependencies=$(yq e . $file)
+
+        # Get the number of dependencies
+        count=$(yq e '.dependencies | length' $file)
+
+        # Iterate over the list
+        for ((i = 0; i < $count; i++)); do
+
+            dependencyPath=".dependencies[$(echo "${dependencies}" | yq e ".dependencies[$i].arrayPosition // 0")]"
+            chartSourcePath=$(echo "${dependencies}" | yq e ".dependencies[$i].sourcePath")
+
+            # Name of the dependency like External DNS
+            name=$(echo "${dependencies}" | yq e ".dependencies[$i].name")
+            # Path to the Chart.yaml file
+            chart_file=$chartSourcePath/Chart.yaml
+            # Path to the version number in the Chart.yaml file like 6.20.0
+            version_path="${dependencyPath}.version"
+            # Repository name for the Artifact API
+            repo_name=$(echo "${dependencies}" | yq e ".dependencies[$i].repositoryName")
+            # Repository url for the Artifact API
+            repo_url_path="${dependencyPath}.repository"
+
+            # Sanitize the repo name
+            sanitized_name=$(echo $repo_name | cut -d'/' -f1)
+
+
+            #Change directory to the chart file directory
+            pushd $chartSourcePath >/dev/null
+
+            # Read the version from the Chart.yaml file
+            version=$(yq e "$version_path" "$(basename $chart_file)")
+            repo_url=$(yq e "$repo_url_path" "$(basename $chart_file)")
+
+            # Add the repo to helm
+            helm repo add $sanitized_name $repo_url || true
+            helm repo update 1 &>/dev/null || true
+
+            #Get the current version with the Artifact API
+            latest_version=$(helm search repo $repo_name --output yaml | yq e '.[0].version')
+
+            # Output
+            echo "Name: $name"
+            echo "Version in Chart.yaml: $version"
+            echo "Current Version: $latest_version"
+
+            # If there's a difference between the versions
+            if [ "$version" != "$latest_version" ] && [ "$latest_version" != null ]; then
+                if [ ! $(git branch --list update-helm-$sanitized_name-$latest_version) ]; then
+                    echo "There's a difference between the versions."
+                    # Get values from the repo
+                    values=$(helm show values $repo_name --version $version)
+                    echo "$values" >values.yaml
+                    current_values=$(helm show values $repo_name --version $latest_version)
+                    echo "$current_values" >current_values.yaml
+
+                    diff_result=$(dyff between values.yaml current_values.yaml) || true
+                    # Output differences
+                    echo "$diff_result" >diff_result.txt
+                    awk '{ printf "\t%s\n", $0 }' diff_result.txt >shift_diff_result.txt
+                    shift_diff_result=$(cat shift_diff_result.txt)
+
+                    # If the diff output is too large for display, overwrite it with a message
+                    if ((${#shift_diff_result} > 4000)); then
+                        shift_diff_result="The diff output is too large for display (>4000 characters). Please refer to ArtifactHub directly for a detailed comparison of changes between the $version and $latest_version."
+                    fi
+
+                    # Delete the temporary files
+                    rm values.yaml current_values.yaml diff_result.txt shift_diff_result.txt
+
+                    # Configure git
+                    git config --global user.email "bot-helm-dep-sheriff@no-reply.com"
+                    git config --global user.name "bot-helm-dep-sheriff"
+                    git config --global pull.ff only
+
+                    # Replace the old version with the new version in the Chart.yaml file using sed
+                    sed -i.bak "s/version: $version/version: $latest_version/g" "$(basename $chart_file)" && rm "$(basename $chart_file).bak"
+
+                    # Create a new branch for this change
+                    git checkout -b update-helm-$sanitized_name-$latest_version || true
+                    # Add the changes to the staging area
+                    git add "$(basename $chart_file)"
+
+                    # Create a commit with a message indicating the changes
+                    git commit -m "Update $name version from $version to $latest_version [skip ci]"
+
+                    # Push the new branch to GitHub
+                    git push https://$(System.AccessToken)@dev.azure.com/${{ parameters.orga }} HEAD:update-helm-$sanitized_name-$latest_version
+
+                    # Create a Azure DevOps Pull Request
+                    az repos pr create --title "Update $name version from $version to $latest_version" --description "$shift_diff_result" --target-branch main --source-branch update-helm-$sanitized_name-$latest_version || true
+
+                    # Get back to the source branch
+                    git checkout $BRANCH
+
+                else
+                    echo "Branch already exists. Checking out to the existing branch." || true
+                fi
+
+            else
+                echo "There's no difference between the versions."
+            fi
+
+            # Return to the original directory
+            popd >/dev/null
+
+            echo ""
+        done
+      displayName: Check Helm Dependencies Updates
+      targetType: inline

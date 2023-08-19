@@ -3,42 +3,42 @@ set -eo pipefail
 
 DEBUG=${DEBUG:-"n"}
 if [[ "$DEBUG" =~ ^([yY])+$ ]]; then
-  set -x
+    set -x
 fi
 
-DIRNAME="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+DIRNAME="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-pushd $DIRNAME > /dev/null
+pushd $DIRNAME >/dev/null
 
-file="dependencies.yaml"
-dependencies=$(yq e . $file)
+file="$(pwd)/dependencies.yaml"
 
 function setEnvsWithConfigFromFile() {
     # Gets the settings and creates a string to define local variables
-    yq e '.config | to_entries | map(.key + "=" + .value) | join(" ")' <<< ${dependencies}
+    eval $(echo "${dependencies}" | yq e '.config | to_entries | map(.key + "=" + .value) | join(" ")')
 }
 
 # -------- functions ------------ #
 
 function readDependenciesFromFile() {
     # Get the number of dependencies
-    count=$(yq e '.dependencies | length' <<< ${dependencies})
+    count=$(echo "${dependencies}" | yq e '.dependencies | length')
+
 }
 
 function checkHelmDependencies() {
     for ((i = 0; i < $count; i++)); do
 
-        dependencyPath=".dependencies[$(yq e ".dependencies[$i].arrayPosition // 0" <<< ${dependencies})]"
-        chartSourcePath=$(yq e ".dependencies[$i].sourcePath" <<< ${dependencies})
+        dependencyPath=".dependencies[$(echo "${dependencies}" | yq e ".dependencies[$i].arrayPosition // 0")]"
+        chartSourcePath=$(echo "${dependencies}" | yq e ".dependencies[$i].sourcePath")
 
         # Name of the dependency like External DNS
-        name=$(yq e ".dependencies[$i].name" <<< ${dependencies})
+        name=$(echo "${dependencies}" | yq e ".dependencies[$i].name")
         # Path to the Chart.yaml file
         chart_file=$chartSourcePath/Chart.yaml
         # Path to the version number in the Chart.yaml file like 6.20.0
         version_path="${dependencyPath}.version"
         # Repository name for the Artifact API
-        repo_name=$(yq e ".dependencies[$i].repositoryName" <<< ${dependencies})
+        repo_name=$(echo "${dependencies}" | yq e ".dependencies[$i].repositoryName")
         # Repository url for the Artifact API
         repo_url_path="${dependencyPath}.repository"
 
@@ -46,7 +46,7 @@ function checkHelmDependencies() {
         sanitized_name=$(echo $repo_name | cut -d'/' -f1)
 
         #Change directory to the chart file directory
-        pushd $chartSourcePath > /dev/null
+        pushd $chartSourcePath >/dev/null
 
         # Read the version from the Chart.yaml file
         version=$(yq e "$version_path" "$(basename $chart_file)")
@@ -67,7 +67,7 @@ function checkHelmDependencies() {
         diffBetweenVersions
 
         # Return to the original directory
-        popd > /dev/null
+        popd >/dev/null
     done
 }
 
@@ -77,14 +77,14 @@ function diffBetweenVersions() {
 
         if [ ! $(git branch --list $tplBranchName) ]; then
             echo "There's a difference between the versions."
-            
-            tempDir=$(mktemp -d -p "${PWD}")
+
+            tempDir=$(mktemp -d)
 
             diffValuesFile="${tempDir}/diff_value.yaml"
             diffLatestValuesFile="${tempDir}/diff_latest_value.yaml"
             diffResultFile="${tempDir}/diff_result.txt"
             shiftDiffResultFile="${tempDir}/shift_diff_result.txt"
-            
+
             # Get values from the repo
             helm show values $repo_name --version $version >$diffValuesFile
             helm show values $repo_name --version $latest_version >$diffLatestValuesFile
@@ -95,9 +95,9 @@ function diffBetweenVersions() {
             shift_diff_result=$(cat $shiftDiffResultFile)
 
             # If the diff output is too large for display, overwrite it with a message
-            if ((${#shift_diff_result} > 4000)); then
+            if ((${#shift_diff_result} > 4000)) && [ "$AZURE_DEVOPS" == "true" ]; then
                 echo "The diff output is too large for display (>4000 characters).
-                Please refer to ArtifactHub directly for a detailed comparison of 
+                Please refer to ArtifactHub directly for a detailed comparison of
                 changes between the $version and $latest_version." >$shiftDiffResultFile
             fi
 
@@ -110,12 +110,12 @@ function diffBetweenVersions() {
             elif [ "$AZURE_DEVOPS" == "true" ]; then
                 azureDevOps
             fi
-            
+
             rm -rf $tempDir
 
         else
-        echo "There's no difference between the versions."
-        fi    
+            echo "There's no difference between the versions."
+        fi
     fi
 }
 
@@ -148,10 +148,10 @@ function gitHub() {
     createCommitAndPushBranch
 
     gh pr create \
-    --title "Update $name version from $version to $latest_version" \
-    --body "$shift_diff_result" \
-    --base $BRANCH \
-    --head $tplBranchName || true
+        --title "Update $name version from $version to $latest_version" \
+        --body "$shift_diff_result" \
+        --base $BRANCH \
+        --head $tplBranchName || true
 
     # Get back to the source branch
     git checkout $BRANCH
@@ -187,7 +187,7 @@ function infoEcho {
 }
 
 function errorUsage {
-cat <<-EOF
+    cat <<-EOF
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 |                                 ERROR: ${1}                                 |
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -198,7 +198,7 @@ EOF
 }
 
 function usage() {
-cat <<-EOF
+    cat <<-EOF
 
 please set all necessary propertis in $file file.
 --------------- necessary-keys: -------------------
@@ -222,14 +222,14 @@ function start() {
 # -------- Check Prerequisites ------------ #
 declare -a defaultDependencies=(
     "yq"
-    "dyff" 
+    "dyff"
     "helm"
     "git"
 )
 
 if [ "$GITHUB" == "true" ]; then
     defaultDependencies+=("gh")
-fi 
+fi
 
 if [ "$AZURE_DEVOPS" == "true" ]; then
     defaultDependencies+=("az")
@@ -256,18 +256,19 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
-# -------- Load config ------------ #
+# -------- check file exists check and load config ------------ #
 
-# load env file if present
-if [[ ! -z $(setEnvsWithConfigFromFile) ]]; then
-    eval $(setEnvsWithConfigFromFile)
+if [[ -f $file ]]; then
+    echo "Loading dependencies from $file"
+    dependencies=$(yq e . $file)
+    setEnvsWithConfigFromFile
 else
-    errorEcho "Key config in ${DIRNAME}/${dependenciesFile} doesnt exists. Please correctly configure the config key!"
+    echo "Error: Dependencies file $file not found!"
 fi
 
 # -------- environments check  ------------ #
 
-## Abort if required arguments are empty
+# Abort if required arguments are empty
 if [[ -z ${BRANCH} || ${BRANCH} == '<no value>' ]]; then
     errorUsage "BRANCH missing!"
 fi
@@ -291,4 +292,4 @@ fi
 # -------- Main  ------------ #
 start
 
-popd > /dev/null
+popd >/dev/null

@@ -1,0 +1,26 @@
+trigger: none
+
+# at 0600 every day
+schedules:
+  - cron: "0 0 * * *"
+    displayName: cronjob runs every day at 0600
+    branches:
+      include:
+        - main
+    always: true
+
+pool:
+  vmImage: "ubuntu-latest"
+
+jobs:
+  - job: check_helm_dependencies_updates
+    workspace:
+      clean: all
+    steps:
+      - checkout: self
+      - template: azure-pipelines/check-helm-dependencies-updates.yaml
+        parameters:
+          - name: orga
+            displayName: DevOps organization
+            type: string
+            default: "REPLACE_ME"
