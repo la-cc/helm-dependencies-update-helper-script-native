@@ -1,15 +1,25 @@
 #!/bin/bash
 set -eo pipefail
 
+DIRNAME="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+
+pushd $DIRNAME > /dev/null
+
+file="dependencies.yaml"
+
+function setEnvsWithConfigFromFile() {
+
+    # Gets the settings and creates a string to define local variables
+    yq e '.config | to_entries | map(.key + "=" + .value) | join(" ")' $file
+
+}
+
 # -------- functions ------------ #
 
-function readFile() {
-    # Read the file
-    file="$(pwd)/dependencies.yaml" # use absolute path
+function readDependenciesFromFile() {
 
     # Get the number of dependencies
     count=$(yq e '.dependencies | length' $file)
-
 }
 
 function checkHelmDependenciesAndUpdateWithOutPR() {
@@ -382,19 +392,20 @@ function usage() {
 
   "
     echo ""
-    echo "please set all necessary environments like export BRANCH='main' "
+    echo "please set all necessary propertis in ${dependenciesFile} file "
     echo "--------------- necessary-Variables: -------------------"
-    echo "BRANCH:'main'"
-    echo "DRY_RUN:'false'"
-    echo "GITHUB:'false'"
-    echo "AZURE_DEVOPS:'false'"
-    echo "WITHOUT_PR:'true'"
+    echo "config:
+  BRANCH: main
+  DRY_RUN: true
+  GITHUB: false
+  AZURE_DEVOPS: false
+  WITHOUT_PR: false"
     echo ""
 }
 
 function start() {
     # Read the file
-    readFile
+    readDependenciesFromFile
     # Check if the dependencies are up to date
     if [ "$DRY_RUN" == "true" ]; then
         checkHelmDependenciesAndUpdateDryRun
@@ -411,8 +422,22 @@ function start() {
 }
 
 # -------- Check Prerequisites ------------ #
+declare -a defaultDependencies=(
+    "yq"
+    "dyff" 
+    "helm"
+    "git"
+)
 
-for cmd in gh yq dyff az helm git; do
+if [ "$GITHUB" == "true" ]; then
+    defaultDependencies+=("gh")
+fi 
+
+if [ "$AZURE_DEVOPS" == "true" ]; then
+    defaultDependencies+=("az")
+fi
+
+for cmd in ${defaultDependencies[*]}; do
     command -v ${cmd} >/dev/null || {
         echo >&2 "${cmd} must be installed - exiting..."
         exit 1
@@ -436,10 +461,10 @@ done
 # -------- Load config ------------ #
 
 # load env file if present
-if [[ -f "${PWD}/config.env" ]]; then
-    source "${PWD}/config.env"
+if [[ ! -z $(setEnvsWithConfigFromFile) ]]; then
+    eval $(setEnvsWithConfigFromFile)
 else
-    errorEcho "Config file ${PWD}/config.env doesnt exists. Please use init-config command to create the file!"
+    errorEcho "Key config in ${DIRNAME}/${dependenciesFile} doesnt exists. Please correctly configure the config key!"
 fi
 
 # -------- environments check  ------------ #
@@ -467,3 +492,5 @@ fi
 
 # -------- Main  ------------ #
 start
+
+popd > /dev/null

@@ -23,13 +23,16 @@ Please feel to fork this repository. This allows you to customize the script for
 
 ## Dry-Run
 
-The default for the `config.env` file looks like:
+The default for the key `config` in the `dependencies.yaml` files looks like:
 
-    BRANCH='main'
-    DRY_RUN='true'
-    GITHUB='false'
-    AZURE_DEVOPS='false'
-    WITHOUT_PR='false'
+```yaml 
+config:
+  BRANCH: main
+  DRY_RUN: true
+  GITHUB: false
+  AZURE_DEVOPS: false
+  WITHOUT_PR: false
+```
 
 This will only print the changes to the console. You can run the script with:
 
@@ -67,17 +70,22 @@ You will get an output like:
 
 First you have to login against GitHub. You can do this with `gh auth login` or get more information here on the official [documentation](https://cli.github.com/manual/gh_auth_login)
 
-Now edit the `config.env` file like:
+Now edit the key `config` in `dependencies.yaml` file like:
 
-    BRANCH='main'
-    DRY_RUN='false'
-    GITHUB='true'
-    AZURE_DEVOPS='false'
-    WITHOUT_PR='false'
+```yaml 
+config:
+  BRANCH: main
+  DRY_RUN: false
+  GITHUB: true
+  AZURE_DEVOPS: false
+  WITHOUT_PR: false
+```
 
 Commit and push the changes to your repository. After that you can run the script with:
 
-**WARNING:** after you set GITHUB to true, the script will create a new branch and a PR with the changes. If you want to test it first, set DRY_RUN to true.
+>**Warning**
+>
+>After you set `GITHUB` to `true`, the script will create a new branch and a PR with the changes. If you want to test it first, set `DRY_RUN` to `true`.
 
 Execute the script with:
 
@@ -91,15 +99,20 @@ First you have to create a PAT token. You can find more information here on the 
 
     AZURE_DEVOPS_EXT_PAT=<your-pat-token>
 
-Then edit the `config.env` file like:
+Now edit the key `config` in `dependencies.yaml` file like:
 
-    BRANCH='main'
-    DRY_RUN='false'
-    GITHUB='false'
-    AZURE_DEVOPS='true'
-    WITHOUT_PR='false'
+```yaml 
+config:
+  BRANCH: main
+  DRY_RUN: true
+  GITHUB: false
+  AZURE_DEVOPS: true
+  WITHOUT_PR: false
+```
 
-**WARNING:** after you set AZURE_DEVOPS to true, the script will create a new branch and a PR with the changes. If you want to test it first, set DRY_RUN to true.
+>**Warning**
+>
+>After you set `AZURE_DEVOPS` to `true`, the script will create a new branch and a PR with the changes. If you want to test it first, set `DRY_RUN` to `true`.
 
 Execute the script with:
 
@@ -112,15 +125,20 @@ Check the changes on Azure DevOps and if you are happy with them, you can merge 
 This part allows you to update the helm dependencies without creating a PR. You can use this part in your CI/CD pipeline.
 It can be useful if you want to update the helm dependencies in your main branch over an manual pull request.
 
-First edit the `config.env` file like:
+Now edit the key `config` in `dependencies.yaml` file like:
 
-    BRANCH='main'
-    DRY_RUN='false'
-    GITHUB='false'
-    AZURE_DEVOPS='false'
-    WITHOUT_PR='true'
+```yaml 
+config:
+  BRANCH: main
+  DRY_RUN: true
+  GITHUB: false
+  AZURE_DEVOPS: false
+  WITHOUT_PR: true
+```
 
-**WARNING:** after you set WITHOUT_PR to true, the script will create a new branch and push this branch. If you want to test it first, set DRY_RUN to true.
+>**Warning**
+>
+>After you set `WITHOUT_PR` to `true`, the script will create a new branch and push this branch. If you want to test it first, set `DRY_RUN` to `true`.
 
 Execute the script with:
 

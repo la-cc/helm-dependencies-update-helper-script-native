@@ -1,3 +1,10 @@
+config:
+  BRANCH: main
+  DRY_RUN: true
+  GITHUB: false
+  AZURE_DEVOPS: false
+  WITHOUT_PR: false
+
 dependencies:
   - name: "External DNS"
     source:
