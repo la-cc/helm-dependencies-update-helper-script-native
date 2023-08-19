@@ -168,9 +168,9 @@ Naturally, you’d want everything to be automated, and the only task on your pl
 Under the folder azure-devops you will find a pipeline file. You can use this folder structure in your Azure DevOps project.
 You should replace the `orga` parameter with your organization and like `https://dev.azure.com/<YOUR_ORGA_NAME>/<YOUR_PPROJECT_NAME>/_git/<YOUR_REPO_NAME>`.
 
-### GitHub Actions - TBD
+### GitHub Actions
 
-You can use this script as a GitHub action in your repository.
+You can use this script as a [GitHub action](https://github.com/la-cc/gh-actions) in your repository.
 To do this, you need only to create a new workflow file in your repository under `.github/workflows/` and add the following content:
 
 ```yaml
@@ -216,5 +216,5 @@ If you're eager to contribute to this script, feel free to fork the repository a
 
 **Current Contributors:**
 
-@jullianow
-@la-cc
+- @[jullianow](https://github.com/jullianow)
+- @[la-cc](https://github.com/la-cc)
