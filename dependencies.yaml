@@ -7,30 +7,18 @@ config:
 
 dependencies:
   - name: "External DNS"
-    source:
-      file: dns/external-dns/Chart.yaml
-      path: .dependencies[0].version
-    repository:
-      name: bitnami/external-dns
-      path: .dependencies[0].repository
+    arrayPosition: 0
+    repositoryName: bitnami/external-dns
+    sourcePath: dns/external-dns
   - name: "Kyverno"
-    source:
-      file: security/kyverno/Chart.yaml
-      path: .dependencies[0].version
-    repository:
-      name: kyverno/kyverno
-      path: .dependencies[0].repository
+    arrayPosition: 0
+    repositoryName: kyverno/kyverno
+    sourcePath: security/kyverno
   - name: "minIO Operator"
-    source:
-      file: storage/minio-operator/Chart.yaml
-      path: .dependencies[0].version
-    repository:
-      name: minio-operator/operator
-      path: .dependencies[0].repository
+    arrayPosition: 0
+    repositoryName: minio-operator/operator
+    sourcePath: storage/minio-operator
   - name: "minIO Tenant"
-    source:
-      file: storage/minio-tenant/Chart.yaml
-      path: .dependencies[0].version
-    repository:
-      name: minio-operator/tenant
-      path: .dependencies[0].repository
+    arrayPosition: 0
+    repositoryName: minio-operator/tenant
+    sourcePath: storage/minio-tenant

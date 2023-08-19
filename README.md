@@ -4,7 +4,8 @@ This is a script to help you to update your helm dependencies in your helm chart
 
 Why I build this tool? We have a lot of helm charts and we want to update the dependencies in all of them.
 The resources from helm-charts will be deployed over argocd, so the helm chart will no be installed on the cluster itself.
-Because of that you cant use tools like [renovate](https://github.com/renovatebot/helm-charts) or [dependabot](https://github.com/dependabot) running in the cluster. Since recently you can use renovate to update helm-values and maybe you like to use this tool instead of this script.
+Because of that you cant use tools like [renovate](https://github.com/renovatebot/helm-charts) or [dependabot](https://github.com/dependabot) running in the cluster. 
+Since recently you can use renovate to update helm-values and maybe you like to use this tool instead of this script.
 
 You can use this tool in your CI/CD pipeline or locally. The whole description about the script can be found on TBD.
 
@@ -36,35 +37,38 @@ config:
 
 This will only print the changes to the console. You can run the script with:
 
-    ./check-helm-dep-updates.sh
+```shell
+./check-helm-dep-updates.sh
+```
 
 You will get an output like:
+```
+ ####################### Begin #######################
+ Name: External DNS
+ Version in Chart.yaml: 6.20.4
+ Latest Version in Repository: 6.21.0
+ There's a difference between the versions.
+ Differences:
+     _        __  __
+   _| |_   _ / _|/ _|  between values.yaml
+ / _' | | | | |_| |_       and latest_values.yaml
+| (_| | |_| |  _|  _|
+ \__,_|\__, |_| |_|   returned two differences
+        |___/
 
-    ####################### Begin #######################
-    Name: External DNS
-    Version in Chart.yaml: 6.20.4
-    Current Version: 6.21.0
-    There's a difference between the versions.
-    Differences:
-        _        __  __
-    _| |_   _ / _|/ _|  between old_values.yaml
-    / _' | | | | |_| |_       and new_values.yaml
-    | (_| | |_| |  _|  _|
-    \__,_|\__, |_| |_|   returned two differences
-            |___/
+ (root level)
+ + one map entry added:
+ ## @param ingressClassFilters Filter sources managed by external-dns via IngressClass (optional)
+ ##
+ ingressClassFilters: []
 
-    (root level)
-    + one map entry added:
-    ## @param ingressClassFilters Filter sources managed by external-dns via IngressClass (optional)
-    ##
-    ingressClassFilters: []
+ image.tag
+ ± value change
+     - 0.13.4-debian-11-r19
+     + 0.13.5-debian-11-r55
 
-    image.tag
-    ± value change
-        - 0.13.4-debian-11-r19
-        + 0.13.5-debian-11-r55
-
-    ####################### End #######################
+ ####################### End #######################
+```
 
 ## GitHub
 
@@ -89,7 +93,9 @@ Commit and push the changes to your repository. After that you can run the scrip
 
 Execute the script with:
 
-    ./check-helm-dep-updates.sh
+```shell
+./check-helm-dep-updates.sh
+```
 
 Check the changes on GitHub and if you are happy with them, you can merge the PR.
 
@@ -97,7 +103,9 @@ Check the changes on GitHub and if you are happy with them, you can merge the PR
 
 First you have to create a PAT token. You can find more information here on the official [documentation](https://docs.microsoft.com/en-us/azure/devops/organizations/accounts/use-personal-access-tokens-to-authenticate?view=azure-devops&tabs=preview-page). After you created the PAT token, you need to set the following variable:
 
-    AZURE_DEVOPS_EXT_PAT=<your-pat-token>
+```shell
+AZURE_DEVOPS_EXT_PAT=<your-pat-token>
+```
 
 Now edit the key `config` in `dependencies.yaml` file like:
 
@@ -116,7 +124,9 @@ config:
 
 Execute the script with:
 
-    ./check-helm-dep-updates.sh
+```shell
+./check-helm-dep-updates.sh
+```
 
 Check the changes on Azure DevOps and if you are happy with them, you can merge the PR.
 
@@ -142,7 +152,9 @@ config:
 
 Execute the script with:
 
-    ./check-helm-dep-updates.sh
+```shell
+./check-helm-dep-updates.sh
+```
 
 Check the changes on your Git Provider and if you are happy with them, you can merge the PR.
 
