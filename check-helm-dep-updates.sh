@@ -10,7 +10,7 @@ DIRNAME="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 pushd $DIRNAME >/dev/null
 
-file="$(pwd)/dependencies.yaml"
+file="dependencies.yaml"
 
 function setEnvsWithConfigFromFile() {
     # Gets the settings and creates a string to define local variables
@@ -73,9 +73,19 @@ function checkHelmDependencies() {
 
 function diffBetweenVersions() {
     if [ "$version" != "$latest_version" ]; then
+
+        # Delete local branch if it already exists
+        git branch -D $tplBranchName || true
+        # Fetch the latest changes from the remote
+        git fetch origin --prune
+        # Get the current branch name
         tplBranchName=update-helm-$sanitized_name-$latest_version
 
-        if [ ! $(git branch --list $tplBranchName) ]; then
+        if [[ -n $(git show-ref $tplBranchName) ]] && [[ "$DRY_RUN" != "true" ]]; then
+
+            echo "[-] Pull request or branch $tplBranchName already exists"
+
+        else
             echo "There's a difference between the versions."
 
             tempDir=$(mktemp -d)
@@ -106,16 +116,16 @@ function diffBetweenVersions() {
             elif [ "$WITHOUT_PR" == "true" ]; then
                 withOutPR
             elif [ "$GITHUB" == "true" ]; then
-                gitHub
+                gitHubPR
             elif [ "$AZURE_DEVOPS" == "true" ]; then
                 azureDevOps
             fi
 
             rm -rf $tempDir
 
-        else
-            echo "There's no difference between the versions."
         fi
+    else
+        echo "There's no difference between the versions."
     fi
 }
 
@@ -143,7 +153,7 @@ function withOutPR() {
     createCommitAndPushBranch
 }
 
-function gitHub() {
+function gitHubPR() {
     updateVersionInChartFile
     createCommitAndPushBranch
 
