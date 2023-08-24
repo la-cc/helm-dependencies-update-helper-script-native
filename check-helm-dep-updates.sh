@@ -25,6 +25,12 @@ function readDependenciesFromFile() {
 
 }
 
+function setSourceBranch() {
+
+    # Set the source branch
+    git checkout $BRANCH
+}
+
 function checkHelmDependencies() {
     for ((i = 0; i < $count; i++)); do
 
@@ -75,7 +81,7 @@ function diffBetweenVersions() {
     if [ "$version" != "$latest_version" ]; then
 
         # Delete local branch if it already exists
-        git branch -D $tplBranchName || true
+        git branch -D $tplBranchName 2>/dev/null || true
         # Fetch the latest changes from the remote
         git fetch origin --prune
         # Get the current branch name
@@ -223,6 +229,8 @@ EOF
 }
 
 function start() {
+    # Set the source branch
+    setSourceBranch
     # Read the file
     readDependenciesFromFile
     # Check if the dependencies are up to date

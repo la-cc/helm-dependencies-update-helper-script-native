@@ -1,5 +1,5 @@
 config:
-  BRANCH: main
+  BRANCH: development
   DRY_RUN: true
   GITHUB: false
   AZURE_DEVOPS: false
