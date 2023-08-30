@@ -196,7 +196,7 @@ jobs:
         uses: actions/checkout@v3
 
       - name: Helm Dependencies
-        uses: la-cc/gh-actions/helm-dependencies@v0.0.3-1
+        uses: la-cc/gh-actions/helm-dependencies@v0.0.8
         with:
           config-path: dependencies.yaml
           user-email: "meep-the-helm-bot@users.noreply.github.com"
